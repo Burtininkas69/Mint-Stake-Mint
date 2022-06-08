@@ -16,7 +16,7 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     string public baseURI;
     string public notRevealedUri;
     string public baseExtension = ".json";
-    uint16 constant public maxSupply = 10;
+    uint16 constant public maxSupply = 10050;
 
     /// @notice CHAINLINK VRF implementation
     address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
@@ -29,9 +29,9 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     uint256 public s_requestId;
 
     /// @notice contract has public, whitelisted & premium whitelist
-    uint256 public cost = 0.003 ether;
-    uint256 public wCost = 0.002 ether;
-    uint256 public pWCost = 0.001 ether;
+    uint256 public cost = 320 ether;
+    uint256 public wCost = 290 ether;
+    uint256 public pWCost = 260 ether;
 
     /// @notice checks if contract is paused, if metadata is revealed and if uri is frozen
     bool public paused;
