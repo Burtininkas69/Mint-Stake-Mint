@@ -109,13 +109,13 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         require(_mintAmount > 0);
 
         require(supply + _mintAmount <= maxSupply);
-        if (isPremiumWhitelisted[msg.sender]) {
+        if (isPremiumWhitelisted[_to]) {
             require(_mintAmount == 1, "You can only have one whitelisted mint");
-            isPremiumWhitelisted[msg.sender] = false;
+            isPremiumWhitelisted[_to] = false;
             require(msg.value >= pWCost * _mintAmount, "PremiumMint: Not enough ether");
-        } else if (isWhitelisted[msg.sender]) {
+        } else if (isWhitelisted[_to]) {
             require(_mintAmount == 1, "You can only have one whitelisted mint");
-            isWhitelisted[msg.sender] = false;
+            isWhitelisted[_to] = false;
             require(msg.value >= wCost * _mintAmount, "WhitelistedMint: Not enough ether");
         } else {
             require(msg.value >= cost * _mintAmount, "Mint: Not enough ether");
@@ -187,7 +187,7 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
 
     /// @notice whitelists array of addresses for premium price
     /// @dev argument should look like this: ["0x00", "0x00"]
-    function premiumWhitelist(address[] memory _addresses, bool _bool) public onlyOwner {
+    function setPremiumWhitelist(address[] memory _addresses, bool _bool) public onlyOwner {
         for (uint i; i < _addresses.length; i++) {
             isPremiumWhitelisted[_addresses[i]] = _bool;
         }
@@ -195,7 +195,7 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
 
     /// @notice whitelists array of addresses for whitelisted price
     /// @dev argument should look like this: ["0x00", "0x00"]
-    function whitelist(address[] memory _addresses, bool _bool) public onlyOwner {
+    function setWhitelist(address[] memory _addresses, bool _bool) public onlyOwner {
         for (uint i; i < _addresses.length; i++) {
             isWhitelisted[_addresses[i]] = _bool;
         }
