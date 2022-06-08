@@ -141,7 +141,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     /// @notice mint function for second biggest discount
     function mintFor30(address _to) public payable notPaused {
         require(viewMyTokens(_to) >= tokensFor30);
-        require(msg.value >= costfor30, "Mint50%OFF: Not enough ether");
+        require(msg.value >= costfor30, "Mint30%OFF: Not enough ether");
         Interface(parentContract).subtractTokens(_to, tokensFor30);
         _safeMint(_to, findUnminted());
     }
@@ -149,7 +149,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     /// @notice mint function for smallest discount
     function mintFor10(address _to) public payable notPaused {
         require(viewMyTokens(_to) >= tokensFor10);
-        require(msg.value >= costfor10, "Mint50%OFF: Not enough ether");
+        require(msg.value >= costfor10, "Mint10%OFF: Not enough ether");
         Interface(parentContract).subtractTokens(_to, tokensFor10);
         _safeMint(_to, findUnminted());
     }
