@@ -7,15 +7,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
+/// @notice interface for staking function
 interface Interface {
-    function viewTokens(address _address) external view returns(uint);
-
     function viewAllocatedTokens(address _address) external view returns(uint);
-
     function viewsubtractedTokens(address _address) external view returns(uint);
-
     function viewActiveTokens(address _address) external view returns(uint);
-
     function subtractTokens(address _address, uint _tokens) external;
 }
 
@@ -24,34 +20,37 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     using Strings
     for uint256;
 
+    /// @notice staking functions address
     address public parentContract;
     string public baseURI;
     string public notRevealedUri;
     string public baseExtension = ".json";
+    /// @notice there is 3 discount levels. Set how many staked tokens each level will cost
     uint16 public tokensFor10 = 200;
     uint16 public tokensFor30 = 400;
     uint16 public tokensFor50 = 800;
-    uint16 constant public maxSupply = 3000;
-    uint256 public cost = 1500 ether;
-    uint256 public costfor10 = 1350 ether;
-    uint256 public costfor30 = 1050 ether;
-    uint256 public costfor50 = 750 ether;
+    uint16 constant public maxSupply = 10;
+    uint256 public cost = 0.004 ether;
+    /// @notice set prices for each level
+    uint256 public costfor10 = 0.003 ether;
+    uint256 public costfor30 = 0.002 ether;
+    uint256 public costfor50 = 0.001 ether;
 
-    /// @notice CHAINLINK
-    uint64 s_subscriptionId;
+    /// @notice CHAINLINK VRF implementation
     address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
     bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
-    uint32 callbackGasLimit = 100000;
     uint16 requestConfirmations = 3;
+    uint32 callbackGasLimit = 100000;
     uint32 numWords = 2;
-
+    uint64 s_subscriptionId;
     uint256[] public s_randomWords;
     uint256 public s_requestId;
     address s_owner;
 
-    bool public paused = false;
-    bool public revealed = false;
-    bool public frozenURI = false;
+    /// @notice checks if contract is paused, if metadata is revealed and if uri is frozen
+    bool public paused;
+    bool public revealed;
+    bool public frozenURI;
 
 
     /// @notice used to find unminted ID
@@ -74,6 +73,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         }
     }
 
+    /// @notice checks if contract is not paused
     modifier notPaused {
         require(!paused);
         _;
@@ -83,6 +83,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         return baseURI;
     }
 
+    /// @notice returns random number from Chainlink VRF
     // Assumes the subscription is funded sufficiently.
     function requestRandomWords() public returns(uint) {
         // Will revert if subscription is not set and funded.
@@ -96,6 +97,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         return _requestId;
     }
 
+    // Chainlink VRF function
     function fulfillRandomWords(
         uint256, /* requestId */
         uint256[] memory randomWords
@@ -114,6 +116,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         return (chosenNft);
     }
 
+    /// @notice normal public mint    
     function mint(address _to, uint256 _mintAmount) public payable notPaused {
         require(totalSupply() + _mintAmount <= maxSupply);
         require(_mintAmount > 0);
@@ -125,6 +128,9 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         }
     }
 
+    /// @notice mint function for biggest discount
+    /// @dev mint function interacts with with staking contract multiple times
+    // Functions are seperated to make them lighter. 
     function mintFor50(address _to) public payable notPaused {
         require(viewMyTokens(_to) >= tokensFor50);
         require(msg.value >= costfor50, "Mint50%OFF: Not enough ether");
@@ -132,6 +138,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         _safeMint(_to, findUnminted());
     }
 
+    /// @notice mint function for second biggest discount
     function mintFor30(address _to) public payable notPaused {
         require(viewMyTokens(_to) >= tokensFor30);
         require(msg.value >= costfor30, "Mint50%OFF: Not enough ether");
@@ -139,6 +146,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         _safeMint(_to, findUnminted());
     }
 
+    /// @notice mint function for smallest discount
     function mintFor10(address _to) public payable notPaused {
         require(viewMyTokens(_to) >= tokensFor10);
         require(msg.value >= costfor10, "Mint50%OFF: Not enough ether");
@@ -146,6 +154,9 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         _safeMint(_to, findUnminted());
     }
 
+    /// @notice checks for tokens earned by staking in other contract
+    /// @dev calling single function that makes all the calculations inside other contract just returned active tokens.
+    // So I made 3 view functions and made the calculation inside this function.
     function viewMyTokens(address _address) public view returns(uint) {
         uint _active = Interface(parentContract).viewActiveTokens(_address);
         uint _allocated = Interface(parentContract).viewAllocatedTokens(_address);
@@ -153,6 +164,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         return (_active + _allocated - _subtracted);
     }
 
+    /// @notice returns all NFT IDs owned
     function walletOfOwner(address _owner) public view returns(uint256[] memory) {
         uint256 ownerTokenCount = balanceOf(_owner);
         uint256[] memory tokenIds = new uint256[](ownerTokenCount);
@@ -164,6 +176,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         return tokenIds;
     }
 
+    /// @notice returns URI
     function tokenURI(uint256 tokenId) public view virtual override returns(string memory) {
         require(_exists(tokenId),
             "ERC721Metadata: URI query for nonexistent token"
@@ -180,15 +193,18 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     //only owner
 
 
+    /// @notice frozen URI will no longer be able to be changed
     function freezeURI() public onlyOwner {
         frozenURI = true;
     }
 
+    /// @notice revealed URI
     function setBaseURI(string memory _newBaseURI) public onlyOwner {
         require(!frozenURI, "URI is frozen");
         baseURI = _newBaseURI;
     }
 
+    /// @notice unrevealed URI
     function setUnrevealedURI(string memory _unrevealedURI) public onlyOwner {
         require(!frozenURI, "URI is frozen");
         notRevealedUri = _unrevealedURI;
@@ -198,6 +214,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         baseExtension = _newBaseExtension;
     }
 
+    /// @notice reveals new metadata
     function reveal() public onlyOwner {
         revealed = true;
     }
@@ -207,6 +224,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         paused = _state;
     }
 
+    /// @notice only owner withdraw
     function withdraw() public onlyOwner {
         (bool oc, ) = payable(owner()).call {
             value: address(this).balance
