@@ -29,7 +29,7 @@ contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     uint16 public tokensFor10 = 200;
     uint16 public tokensFor30 = 400;
     uint16 public tokensFor50 = 800;
-    uint16 constant public maxSupply = 3000;
+    uint16 constant public maxSupply = 3333;
     uint256 public cost = 1500 ether;
     /// @notice set prices for each level
     uint256 public costfor10 = 1350 ether;
