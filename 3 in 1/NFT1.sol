@@ -15,7 +15,7 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     string public baseURI;
     string public notRevealedUri;
     string public baseExtension = ".json";
-    uint16 constant public maxSupply = 10;
+    uint16 constant public maxSupply = 10050;
 
     /// @notice CHAINLINK
     uint64 s_subscriptionId;
@@ -29,9 +29,9 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     uint256 public s_requestId;
     address s_owner;
 
-    uint256 public cost = 0.003 ether;
-    uint256 public wCost = 0.002 ether;
-    uint256 public pWCost = 0.001 ether;
+    uint256 public cost = 320 ether;
+    uint256 public wCost = 290 ether;
+    uint256 public pWCost = 260 ether;
 
     /// @notice this uint prevents owners from withdrawing referral payouts from contract
     uint256 internal referralObligationPool;
