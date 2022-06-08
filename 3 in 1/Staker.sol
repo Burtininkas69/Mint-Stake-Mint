@@ -9,6 +9,7 @@ interface Interface {
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
 }
 
+/// @notice Staking contract accepts tokens(ERC721) and stakes them for rewards. Those rewards can be used by other contracts
 contract Staker is IERC721Receiver {
 
     /// @notice original NFT contract
