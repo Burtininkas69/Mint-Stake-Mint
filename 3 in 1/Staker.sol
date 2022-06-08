@@ -148,7 +148,7 @@ contract Staker is IERC721Receiver {
 
     /// @notice whitelists contract that should be able to use those tokens
     /// @dev this is a mapping, so that token use wouldn't be limited to one contract use
-    function whitelist(address _address, bool _bool) public isOwner {
+    function setWhitelist(address _address, bool _bool) public isOwner {
         whitelisted[_address]=_bool;
     }
 
