@@ -29,9 +29,9 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     uint256 public s_requestId;
 
     /// @notice contract has public, whitelisted & premium whitelist
-    uint256 public cost = 320 ether;
-    uint256 public wCost = 290 ether;
-    uint256 public pWCost = 260 ether;
+    uint256 public cost = 0.003 ether;
+    uint256 public wCost = 0.002 ether;
+    uint256 public pWCost = 0.001 ether;
 
     /// @notice checks if contract is paused, if metadata is revealed and if uri is frozen
     bool public paused;
@@ -111,12 +111,12 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         require(supply + _mintAmount <= maxSupply);
         if (isPremiumWhitelisted[_to]) {
             require(_mintAmount == 1, "You can only have one whitelisted mint");
-            isPremiumWhitelisted[_to] = false;
             require(msg.value >= pWCost * _mintAmount, "PremiumMint: Not enough ether");
+            isPremiumWhitelisted[_to] = false;
         } else if (isWhitelisted[_to]) {
             require(_mintAmount == 1, "You can only have one whitelisted mint");
-            isWhitelisted[_to] = false;
             require(msg.value >= wCost * _mintAmount, "WhitelistedMint: Not enough ether");
+            isWhitelisted[_to] = false;
         } else {
             require(msg.value >= cost * _mintAmount, "Mint: Not enough ether");
         }
