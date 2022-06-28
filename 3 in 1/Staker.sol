@@ -4,6 +4,10 @@ pragma solidity ^ 0.8 .4;
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 
+pragma solidity ^ 0.8 .4;
+
+
+
 /// @notice creates an interface for SafeTransfer function. Used to transfer NFTs.
 interface Interface {
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
@@ -37,9 +41,11 @@ contract Staker is IERC721Receiver {
 
     /// @notice used to find NFTs position in Stake struct
     mapping(uint=> uint) public stakedRoom;
+    /// @notice returns how many nfts are staked by that address
+    mapping(address=> uint) public walletOfOwnerStaked;
     /// @notice used by other contract to subtract tokens after they are used
     mapping(address=> uint) public subtractedTokens;
-    /// @notice shows all staked tokens
+    /// @notice shows all staked NFTs
     mapping(address=> uint[]) public ownerOfTokens;
     /// @notice after NFT is unstaked, function calculates all alocated tokens and adds it here
     mapping(address=> uint) public unstakedTokenEarnings;
@@ -69,6 +75,7 @@ contract Staker is IERC721Receiver {
             stakedRoom[_tempID]=LastStruct;
             ownerOfTokens[msg.sender].push(_tempID);
             LastStruct++;
+            walletOfOwnerStaked[msg.sender]++;
         }
     }
 
@@ -88,7 +95,8 @@ contract Staker is IERC721Receiver {
             if(_timeDifference > StakingTime) {
                 unstakedTokenEarnings[msg.sender]=unstakedTokenEarnings[msg.sender]+(_timeDifference / StakingTime * Multiplyer);
             }
-
+            delete ownerOfTokens[msg.sender][_tempID];
+            walletOfOwnerStaked[msg.sender]--;
             // transfers back the NFT
             Interface(parentNFT).safeTransferFrom(address(this), msg.sender, _tempID);
         }
@@ -135,6 +143,10 @@ contract Staker is IERC721Receiver {
             }
     }
     return _tempTokens;
+    }
+
+    function viewAllStakedNFTs(address _address) public view returns(uint [] memory){
+        return ownerOfTokens[_address];
     }
 
     /// @notice used to subtract tokens after they are used somewhere
