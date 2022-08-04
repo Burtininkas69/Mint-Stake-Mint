@@ -165,6 +165,11 @@ contract Staker is IERC721Receiver {
         whitelisted[_address]=_bool;
     }
 
+    /// @notice change parent contract address
+    function editParentAddress(address _address) public isOwner {
+        parentNFT = _address;
+    }
+
     /// @notice OpenZeppelin requires ERC721Received implementation. It will not let contract receive tokens without this implementation.
     /// @dev this will give warnings on the compiler, because of unused parameters, but ERC721 standards require this function to accept all these parameters. Ignore these warnings.
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) public override returns(bytes4) {
