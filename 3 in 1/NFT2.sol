@@ -7,16 +7,34 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
-contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
+/// @notice interface for staking function
+interface Interface {
+    function viewAllocatedTokens(address _address) external view returns(uint);
+    function viewsubtractedTokens(address _address) external view returns(uint);
+    function viewActiveTokens(address _address) external view returns(uint);
+    function subtractTokens(address _address, uint _tokens) external;
+}
+
+contract NFT2 is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface COORDINATOR;
     using Strings
     for uint256;
 
-    address s_owner;
+    /// @notice staking functions address
+    address public parentContract;
     string public baseURI;
     string public notRevealedUri;
     string public baseExtension = ".json";
-    uint16 constant public maxSupply = 10050;
+    /// @notice there is 3 discount levels. Set how many staked tokens each level will cost
+    uint16 public tokensFor10 = 200;
+    uint16 public tokensFor30 = 400;
+    uint16 public tokensFor50 = 800;
+    uint16 constant public maxSupply = 3333;
+    uint256 public cost = 1500 ether;
+    /// @notice set prices for each level
+    uint256 public costfor10 = 1350 ether;
+    uint256 public costfor30 = 1050 ether;
+    uint256 public costfor50 = 750 ether;
 
     /// @notice CHAINLINK VRF implementation
     address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
@@ -27,32 +45,28 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     uint64 s_subscriptionId;
     uint256[] public s_randomWords;
     uint256 public s_requestId;
-
-    /// @notice contract has public, whitelisted & premium whitelist
-    uint256 public cost = 0.003 ether;
-    uint256 public wCost = 0.002 ether;
-    uint256 public pWCost = 0.001 ether;
+    address s_owner;
 
     /// @notice checks if contract is paused, if metadata is revealed and if uri is frozen
     bool public paused;
-    bool public revealed;
+    bool public revealed = true;
     bool public frozenURI;
 
 
     /// @notice used to find unminted ID
     uint16[maxSupply] public mints;
 
-    /// @notice whitelisted addresses are added here
-    mapping(address => bool) public isPremiumWhitelisted;
-    mapping(address => bool) public isWhitelisted;
+    mapping(string => bool) public codeIsTaken;
+    mapping(string => address) internal ownerOfCode;
 
-    constructor(string memory _name, string memory _symbol, string memory _unrevealedURI, uint64 subscriptionId) ERC721(_name, _symbol) VRFConsumerBaseV2(vrfCoordinator) {
+    constructor(string memory _name, string memory _symbol, string memory _baseURI, uint64 subscriptionId, address _parentContract) ERC721(_name, _symbol) VRFConsumerBaseV2(vrfCoordinator) {
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+        parentContract = _parentContract;
         s_owner = msg.sender;
         s_subscriptionId = subscriptionId;
-        setUnrevealedURI(_unrevealedURI);
+        setBaseURI(_baseURI);
 
-        /// @notice an array of thousands of numbers would be too long to hardcode it. So we are using constructor to generate all numbers for us.
+        /// @notice an array of lets say 10,000 numbers would be too long to hardcode it. So we are using constructor to generate all numbers for us.
         /// @dev generates all possible IDs of NFTs that our findUnminted() function picks from
         for (uint16 i = 0; i < maxSupply; ++i) {
             mints[i] = i;
@@ -102,33 +116,52 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         return (chosenNft);
     }
 
-    /// @notice mints NFT with corresponding price
-    /// @dev checks if address has premium whitelist or whitelist. If not, uses public price.
+    /// @notice normal public mint    
     function mint(address _to, uint256 _mintAmount) public payable notPaused {
-        uint256 supply = totalSupply();
+        require(totalSupply() + _mintAmount <= maxSupply);
         require(_mintAmount > 0);
-        require(supply + _mintAmount <= maxSupply);
-        if( msg.sender != owner()) {
-        if (isPremiumWhitelisted[_to]) {
-            require(_mintAmount == 1, "You can only have one whitelisted mint");
-            require(msg.value >= pWCost * _mintAmount, "PremiumMint: Not enough ether");
-            isPremiumWhitelisted[_to] = false;
-        } else if (isWhitelisted[_to]) {
-            require(_mintAmount == 1, "You can only have one whitelisted mint");
-            require(msg.value >= wCost * _mintAmount, "WhitelistedMint: Not enough ether");
-            isWhitelisted[_to] = false;
-        } else {
-            require(msg.value >= cost * _mintAmount, "Mint: Not enough ether");
-        }
-        }
+        require(msg.value >= cost * _mintAmount, "Mint: Not enough ether");
+
 
         for (uint256 i = 0; i < _mintAmount; i++) {
             _safeMint(_to, findUnminted());
         }
     }
 
-    function checkOwner() public view returns(address) {
-        return (owner());
+    /// @notice mint function for biggest discount
+    /// @dev mint function interacts with with staking contract multiple times
+    // Functions are seperated to make them lighter. 
+    function mintFor50(address _to) public payable notPaused {
+        require(viewMyTokens(_to) >= tokensFor50);
+        require(msg.value >= costfor50, "Mint50%OFF: Not enough ether");
+        Interface(parentContract).subtractTokens(_to, tokensFor50);
+        _safeMint(_to, findUnminted());
+    }
+
+    /// @notice mint function for second biggest discount
+    function mintFor30(address _to) public payable notPaused {
+        require(viewMyTokens(_to) >= tokensFor30);
+        require(msg.value >= costfor30, "Mint30%OFF: Not enough ether");
+        Interface(parentContract).subtractTokens(_to, tokensFor30);
+        _safeMint(_to, findUnminted());
+    }
+
+    /// @notice mint function for smallest discount
+    function mintFor10(address _to) public payable notPaused {
+        require(viewMyTokens(_to) >= tokensFor10);
+        require(msg.value >= costfor10, "Mint10%OFF: Not enough ether");
+        Interface(parentContract).subtractTokens(_to, tokensFor10);
+        _safeMint(_to, findUnminted());
+    }
+
+    /// @notice checks for tokens earned by staking in other contract
+    /// @dev calling single function that makes all the calculations inside other contract just returned active tokens.
+    // So I made 3 view functions and made the calculation inside this function.
+    function viewMyTokens(address _address) public view returns(uint) {
+        uint _active = Interface(parentContract).viewActiveTokens(_address);
+        uint _allocated = Interface(parentContract).viewAllocatedTokens(_address);
+        uint _subtracted = Interface(parentContract).viewsubtractedTokens(_address);
+        return (_active + _allocated - _subtracted);
     }
 
     /// @notice returns all NFT IDs owned
@@ -159,6 +192,7 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
 
     //only owner
 
+
     /// @notice frozen URI will no longer be able to be changed
     function freezeURI() public onlyOwner {
         frozenURI = true;
@@ -181,8 +215,8 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     }
 
     /// @notice reveals new metadata
-    function reveal() public onlyOwner {
-        revealed = true;
+    function reveal(bool _bool) public onlyOwner {
+        revealed = _bool;
     }
 
     /// @notice emergency pause. If something goes wrong, we could pause the mint function
@@ -190,25 +224,14 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         paused = _state;
     }
 
-    /// @notice whitelists array of addresses for premium price
-    /// @dev argument should look like this: ["0x00", "0x00"]
-    function setPremiumWhitelist(address[] memory _addresses, bool _bool) public onlyOwner {
-        for (uint i; i < _addresses.length; i++) {
-            isPremiumWhitelisted[_addresses[i]] = _bool;
-        }
-    }
-
-    /// @notice whitelists array of addresses for whitelisted price
-    /// @dev argument should look like this: ["0x00", "0x00"]
-    function setWhitelist(address[] memory _addresses, bool _bool) public onlyOwner {
-        for (uint i; i < _addresses.length; i++) {
-            isWhitelisted[_addresses[i]] = _bool;
-        }
-    }
-
-    /// @notice change parent contract address
+        /// @notice edits chainlink VRF ID
     function editSubscribtionId(uint64 _id) public onlyOwner {
         s_subscriptionId = _id;
+    }
+
+        /// @notice edits chainlink VRF ID
+    function editParentAddress(address _address) public onlyOwner {
+        parentContract = _address;
     }
 
     /// @notice only owner withdraw
