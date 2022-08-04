@@ -107,8 +107,8 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
     function mint(address _to, uint256 _mintAmount) public payable notPaused {
         uint256 supply = totalSupply();
         require(_mintAmount > 0);
-
         require(supply + _mintAmount <= maxSupply);
+        if( msg.sender != owner()) {
         if (isPremiumWhitelisted[_to]) {
             require(_mintAmount == 1, "You can only have one whitelisted mint");
             require(msg.value >= pWCost * _mintAmount, "PremiumMint: Not enough ether");
@@ -120,10 +120,15 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         } else {
             require(msg.value >= cost * _mintAmount, "Mint: Not enough ether");
         }
+        }
 
         for (uint256 i = 0; i < _mintAmount; i++) {
             _safeMint(_to, findUnminted());
         }
+    }
+
+    function checkOwner() public view returns(address) {
+        return (owner());
     }
 
     /// @notice returns all NFT IDs owned
@@ -199,6 +204,11 @@ contract NFT is ERC721Enumerable, Ownable, VRFConsumerBaseV2 {
         for (uint i; i < _addresses.length; i++) {
             isWhitelisted[_addresses[i]] = _bool;
         }
+    }
+
+    /// @notice edits chainlink VRF ID
+    function editSubscribtionId(uint64 _id) public onlyOwner {
+        s_subscriptionId = _id;
     }
 
     /// @notice only owner withdraw
