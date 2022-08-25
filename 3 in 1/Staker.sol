@@ -82,20 +82,26 @@ contract Staker is IERC721Receiver {
     /// @notice selected NFT is transfered back to owner. Timer stops
     /// @dev sends back nft, closes struct with bool and counts staked time
     function unstake(uint[] memory _id) public {
-        for(uint i; i < _id.length; i++) {
-            uint _tempID=_id[i];
-            uint _tempRoom=stakedRoom[_tempID];
-            uint _timeDifference=block.timestamp - StakedStruct[_tempRoom].stakingStart;
+        for (uint i; i < _id.length; i++) {
+            uint _tempID = _id[i];
+            uint _tempRoom = stakedRoom[_tempID];
+            uint _timeDifference = block.timestamp - StakedStruct[_tempRoom].stakingStart;
             // adds unstake time to calculate time diference between stake and unstake
-            StakedStruct[_tempRoom].stakingEnding=block.timestamp;
+            StakedStruct[_tempRoom].stakingEnding = block.timestamp;
             // closes struct so that it is not counted in calculations
-            StakedStruct[_tempRoom].staked=false;
+            StakedStruct[_tempRoom].staked = false;
 
             // if time difference is greater than set, calculates tokens and sends them to seperate location
-            if(_timeDifference > StakingTime) {
-                unstakedTokenEarnings[msg.sender]=unstakedTokenEarnings[msg.sender]+(_timeDifference / StakingTime * Multiplyer);
+            if (_timeDifference > StakingTime) {
+                unstakedTokenEarnings[msg.sender] = unstakedTokenEarnings[msg.sender] + (_timeDifference / StakingTime * Multiplyer);
             }
-            delete ownerOfTokens[msg.sender][_tempID];
+            for (uint a; a < ownerOfTokens[msg.sender].length; a++) {
+                if (ownerOfTokens[msg.sender][a] == _tempID) {
+                    ownerOfTokens[msg.sender][a] = ownerOfTokens[msg.sender][ownerOfTokens[msg.sender].length - 1];
+                    ownerOfTokens[msg.sender].pop();
+                    break;
+                }
+            }
             walletOfOwnerStaked[msg.sender]--;
             // transfers back the NFT
             Interface(parentNFT).safeTransferFrom(address(this), msg.sender, _tempID);
